@@ -66,7 +66,10 @@ def get_video_date(file_path):
         with parser:
             metadata = extractMetadata(parser)
             if metadata and metadata.has('creation_date'):
-                return metadata.get('creation_date')
+                value = metadata.get('creation_date')
+                if isinstance(value, datetime.date) and not isinstance(value, datetime.datetime):
+                    value = datetime.datetime(value.year, value.month, value.day)
+                return value
     except Exception:
         pass
     return None
@@ -166,18 +169,20 @@ if __name__ == "__main__":
         print("  Dry run move:   python3 media_organizer.py <source_folder> <target_folder> --dry-run")
         sys.exit(1)
 
-    src = args[1]
-    
+    # Separate positional args from flags so flags are never captured as paths
+    positional = [a for a in args[1:] if not a.startswith('--')]
+    src = positional[0] if positional else None
+
     # Determine mode
     if "--report-only" in args:
         mode = "report"
         dst = None
     elif "--dry-run" in args:
         mode = "dry-run"
-        dst = args[2] if len(args) > 2 else None
+        dst = positional[1] if len(positional) > 1 else None
     else:
         mode = "organize"
-        dst = args[2] if len(args) > 2 else None
+        dst = positional[1] if len(positional) > 1 else None
 
     if not os.path.exists(src):
         print(f"Source directory {src} does not exist.")
